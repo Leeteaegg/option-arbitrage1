@@ -18,17 +18,29 @@ def calculate_fair_price(futures_price, strike_price, days_to_expiration, option
     else:
         return 0
 
-# === 模擬歷史資料 === #
+# === 載入使用者上傳的真實資料 === #
 def fetch_historical_data():
-    dates = pd.date_range(start="2024-03-01", periods=10, freq="D")
-    prices = np.linspace(18800, 19100, len(dates))  # 模擬期貨價格上漲
-    return pd.DataFrame({"日期": dates, "期貨價格": prices})
+    uploaded_file = st.sidebar.file_uploader("上傳歷史資料 (CSV)", type=["csv"])
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+        df.columns = df.columns.str.strip()
+        if "日期" in df.columns and "期貨價格" in df.columns:
+            df["日期"] = pd.to_datetime(df["日期"])
+            return df
+        else:
+            st.warning("CSV 檔需包含 '日期' 與 '期貨價格' 欄位")
+            return pd.DataFrame()
+    else:
+        st.info("請在左側欄位上傳包含 '日期' 與 '期貨價格' 欄位的 CSV 檔")
+        return pd.DataFrame()
 
 # === 執行回測 === #
 def backtest():
     data = fetch_historical_data()
-    result = []
+    if data.empty:
+        return pd.DataFrame()
 
+    result = []
     for _, row in data.iterrows():
         futures_price = row["期貨價格"]
         fair_price = calculate_fair_price(
@@ -56,7 +68,6 @@ def backtest():
 # === 顯示結果 === #
 st.title("📈 選擇權套利策略回測")
 result_df = backtest()
-st.dataframe(result_df, use_container_width=True)
-
-# 繪圖
-st.line_chart(result_df.set_index("日期")["期貨價格"], height=300)
+if not result_df.empty:
+    st.dataframe(result_df, use_container_width=True)
+    st.line_chart(result_df.set_index("日期")["期貨價格"], height=300)
