@@ -12,11 +12,13 @@ load_dotenv()
 # === 登入 Shioaji API（永豐證券）=== #
 def login_shioaji():
     try:
-        api = sj.Shioaji()
-        login_info = api.login(
-            person_id=os.getenv("SHIOAJI_PERSON_ID"),
-            passwd=os.getenv("SHIOAJI_PASSWORD")
-        )
+        api = sj.Shioaji(simulation=True)  # 建議先用模擬帳號測試
+        person_id = os.getenv("SHIOAJI_PERSON_ID")
+        password = os.getenv("SHIOAJI_PASSWORD")
+        if not person_id or not password:
+            st.error("❌ 尚未設定 API 登入資訊，請檢查 .env 檔案。")
+            return None
+        login_info = api.login(person_id=person_id, password=password)
         st.success("✅ 成功登入 Shioaji")
         return api
     except Exception as e:
@@ -37,7 +39,8 @@ def fetch_realtime_futures_price():
     if api is None:
         return None
     try:
-        contract = api.Contracts.Futures.TXF.TXF202404  # 每月需更新，例如 TXF202404 表示 2024 年 4 月
+        contracts = api.Contracts.Futures.TXF
+        contract = [c for c in contracts.values()][0]  # 自動抓最近月合約
         quote = api.quote(contract)
         return float(quote.close)
     except Exception as e:
