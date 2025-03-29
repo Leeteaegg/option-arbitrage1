@@ -3,20 +3,26 @@ import pandas as pd
 import numpy as np
 import shioaji as sj
 import os
-from dotenv import load_dotenv
+import json
 from datetime import datetime
 
-# 載入 .env 環境變數
-load_dotenv()
+# === 從 config.json 載入登入資訊 === #
+def load_login_config():
+    try:
+        with open("config.json", "r", encoding="utf-8") as f:
+            config = json.load(f)
+        return config.get("person_id"), config.get("password")
+    except Exception as e:
+        st.error(f"❌ 無法讀取 config.json: {e}")
+        return None, None
 
 # === 登入 Shioaji API（永豐證券）=== #
 def login_shioaji():
     try:
-        api = sj.Shioaji(simulation=True)  # 建議先用模擬帳號測試
-        person_id = os.getenv("SHIOAJI_PERSON_ID")
-        password = os.getenv("SHIOAJI_PASSWORD")
+        api = sj.Shioaji(simulation=True)
+        person_id, password = load_login_config()
         if not person_id or not password:
-            st.error("❌ 尚未設定 API 登入資訊，請檢查 .env 檔案。")
+            st.error("❌ 尚未設定 API 登入資訊，請檢查 config.json。")
             return None
         login_info = api.login(person_id=person_id, password=password)
         st.success("✅ 成功登入 Shioaji")
